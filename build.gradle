@@ -1,0 +1,72 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '3.3.0'
+	id 'io.spring.dependency-management' version '1.1.5'
+	id "org.openapi.generator" version "7.5.0"
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+configurations {
+	compileOnly {
+		extendsFrom annotationProcessor
+	}
+}
+repositories {
+	mavenCentral()
+}
+
+/*
+soring apiで生成されたimportを適用させるために何行か追加している
+*/
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
+	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.0'
+	implementation 'org.openapitools:jackson-databind-nullable:0.2.1'
+	implementation 'io.swagger.core.v3:swagger-annotations:2.2.8'
+
+	/*
+	データベース用のdependencies
+	 */
+	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.3'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	runtimeOnly 'com.h2database:h2'
+
+	/*
+	リファクタリング用のlombokを追加
+	 */
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+	runtimeOnly 'com.h2database:h2'
+	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+tasks.named('test') {
+	useJUnitPlatform()
+}
+
+/*
+springのapiを生成する
+ */
+task buildSpringServer(type: org.openapitools.generator.gradle.plugin.tasks.GenerateTask){
+	generatorName = "spring"
+	inputSpec = "$rootDir/src/main/resources/api-schema.yaml".toString()
+	outputDir = "$buildDir/spring".toString()
+	apiPackage = "com.example.todo_api.controller"
+	modelPackage = "com.example.todo_api.model"
+	configOptions = [
+			interfaceOnly: "true",
+			useSpringBoot3: "true"
+	]
+}
+
+openApiValidate {
+	inputSpec = "$rootDir/src/main/resources/api-schema.yaml"
+}
+
+compileJava.dependsOn tasks.buildSpringServer //javaが起動した時に自動的にspringのapiが実行される
+sourceSets.main.java.srcDir "$buildDir/spring/src/main/java" //コードをimplementするため
